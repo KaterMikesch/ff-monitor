@@ -29,13 +29,17 @@
     value))
 
 ;; for mocking status info
-(def objectpark-node-id :c46e1fe7b1c8)
+(def objectpark-node1-id :c46e1fe7b1c8)
+(def objectpark-node2-id :647002aac820)
 
 ;; for mocking status info
 (defn mock-node-infos [nodes]
-  (let [objectpark-node (objectpark-node-id nodes)
-        mocked-objectpark-node (assoc objectpark-node :lastseen (t/minus (l/local-now) (t/hours 2)))]
-    (assoc nodes objectpark-node-id mocked-objectpark-node)))
+  (let [objectpark-node1 (objectpark-node1-id nodes)
+        mocked-objectpark-node1 (assoc objectpark-node1 :lastseen (t/minus (l/local-now) (t/hours 2)))
+        objectpark-node2 (objectpark-node2-id nodes)
+        mocked-objectpark-node2 (assoc objectpark-node2 :lastseen (t/minus (l/local-now) (t/hours 2)))
+        ]
+    (assoc nodes objectpark-node1-id mocked-objectpark-node1 objectpark-node2-id mocked-objectpark-node2)))
 
 (defn node-infos [url]
   (let [nodes (:nodes (json/read-str (slurp url)
