@@ -15,7 +15,7 @@
 
 ;; access paths into node status info maps
 (def email-address-path [:nodeinfo :owner :contact])
-(def send-alerts?-path [:nodeinfo :owner :send_alerts])
+(def send-alerts?-path [:nodeinfo :send_alerts])
 (def hostname-path [:nodeinfo :hostname])
 (def id-path [:nodeinfo :node_id])
 (def online?-path [:flags :online])
