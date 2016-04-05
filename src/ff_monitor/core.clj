@@ -68,19 +68,26 @@
   (let [pattern #"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"]
     (and (string? email-address) (re-matches pattern email-address))))
 
+(def date-formatter (f/formatter-local "d.M.yyyy"))
+(def time-formatter (f/formatter-local "H:m"))
+
 (defn send-notification-email
   "Assuming email-address (aka contact) in all given node-infos is the same."
   [node-infos]
   (let [email-address (get-in (first node-infos) email-address-path)
         affected-routers-text (reduce (fn [previous-text node-info]
-                       (str previous-text
-                            \" (get-in node-info hostname-path) \"
-                            ", zuletzt gemeldet am "
-                            (l/format-local-time (get-in node-info [:lastseen]) :mysql)
-                            ".""\n"
-                            "Zur Karte: <https://map.kbu.freifunk.net/#!v:m;n:"
-                            (get-in node-info id-path) ">"                         
-                            "\n\n")) "" node-infos)]
+                                        (let [last-seen (:lastseen node-info)]
+                                          (str previous-text
+                                               \" (get-in node-info hostname-path) \"
+                                               ", zuletzt gemeldet am "
+                                               (f/unparse date-formatter last-seen)
+                                               " um "
+                                               (f/unparse time-formatter last-seen)
+                                               " Uhr"
+                                               ".""\n"
+                                               "Zur Karte: <https://map.kbu.freifunk.net/#!v:m;n:"
+                                               (get-in node-info id-path) ">"                         
+                                               "\n\n"))) "" node-infos)]
     (postal/send-message {:host "w011db5c.kasserver.com"
                           :user "m0385061"
                           :pass "kbumon"
