@@ -1,0 +1,7 @@
+{:nodes-urls ["https://some" "https://map" "https://urls"]
+ :email {:smtp {:host "mailhost"
+                :user "login"
+                :pass "password"
+                :ssl false}
+         :from "Freifunk KBU Monitor <freifunk-monitor@objectpark.org>"
+         :subject "Problem mit Freifunk Router(n)?"}}

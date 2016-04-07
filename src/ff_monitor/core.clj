@@ -4,14 +4,12 @@
             [clj-time.format :as f]
             [clj-time.local :as l]
             [clojure.data.json :as json]
-            [postal.core :as postal]))
+            [postal.core :as postal]
+            [cprop.core :refer [load-config]]))
 
 ;; if DEBUG true, all notification emails will be sent to a
 ;; test email address instead of real owners' email addresses
 (def DEBUG true)
-
-;; URLs to request for node status info
-(def urls ["https://mapkoeln.kbu.freifunk.net/data/nodes.json"])
 
 ;; access paths into node status info maps
 (def email-address-path [:nodeinfo :owner :contact])
@@ -64,7 +62,9 @@
                        (node-online? x)))
           node-infos))
 
-(defn valid-email-address? [email-address]
+(defn valid-email-address?
+"Checks if given string is a valid email address (RFC 2822 compliant)."
+  [email-address]
   (let [pattern #"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"]
     (and (string? email-address) (re-matches pattern email-address))))
 
@@ -73,7 +73,7 @@
 
 (defn send-notification-email
   "Assuming email-address (aka contact) in all given node-infos is the same."
-  [node-infos]
+  [node-infos email-config]
   (let [email-address (get-in (first node-infos) email-address-path)
         affected-routers-text (reduce (fn [previous-text node-info]
                                         (let [last-seen (:lastseen node-info)]
@@ -88,21 +88,19 @@
                                                "Zur Karte: <https://map.kbu.freifunk.net/#!v:m;n:"
                                                (get-in node-info id-path) ">"                         
                                                "\n\n"))) "" node-infos)]
-    (postal/send-message {:host "w011db5c.kasserver.com"
-                          :user "m0385061"
-                          :pass "kbumon"
-                          :ssl true}
+    (postal/send-message (:smtp email-config)
                          {:from "Freifunk KBU Monitor <freifunk-monitor@objectpark.org>"
                           :to (if DEBUG
                                 "freifunk-monitor@objectpark.org"
                                 email-address)
-                          :subject "Problem mit Freifunk Router(n)?"
+                          :subject (:subject email-config)
                           :body affected-routers-text})))
 
 (defn -main
   "Sends notification emails to matching vanished node-owners."
   [& args]
-  (let [vanished-nodes (nodes-vanished-since (node-infos (first urls))
+  (let [config (load-config)
+        vanished-nodes (nodes-vanished-since (node-infos (first (:nodes-urls config)))
                                              (t/minus (l/local-now) (t/hours 1)))
         nodes-for-notification (filter (fn [x]
                                          (and (send-alert-requested? x)
@@ -113,5 +111,5 @@
                                   #(get-in % email-address-path)
                                   nodes-for-notification)]
     (doseq [node-infos-for-email-address grouped-by-email-address]
-      (send-notification-email (nth node-infos-for-email-address 1)))
+      (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
     (println "Sent" (count grouped-by-email-address) "notification email(s).")))

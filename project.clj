@@ -6,7 +6,9 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [clj-time "0.11.0"]
                  [org.clojure/data.json "0.2.6"]
-                 [com.draines/postal "1.11.3"]]
+                 [com.draines/postal "1.11.3"]
+                 [cprop "0.1.7"]]
   :main ^:skip-aot ff-monitor.core
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :profiles {:dev {:jvm-opts ["-Dconf=/usr/local/etc/ff-monitor.edn"]}
+             :uberjar {:aot :all}})
