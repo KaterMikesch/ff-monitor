@@ -33,9 +33,7 @@
   (let [nodes (:nodes (json/read-str (slurp url)
                                      :key-fn keyword
                                      :value-fn value-coercer))]
-    (vals (if DEBUG
-            (mock-node-infos nodes)
-            nodes))))
+    (vals nodes)))
 
 (defn send-alert-requested? [node-info]
   (get-in node-info send-alerts?-path))
@@ -81,21 +79,6 @@
                                 email-address)
                           :subject (:subject email-config)
                           :body (c/render (:body email-config) {:node-list affected-routers-text})})))
-
-;; for mocking status info
-(def objectpark-node1-id :c46e1fe7b1c8)
-(def objectpark-node2-id :647002aac820)
-
-;; for mocking status info
-(defn mock-node-infos [nodes]
-  (let [objectpark-node1 (objectpark-node1-id nodes)
-        mocked-objectpark-node1 (assoc objectpark-node1 :lastseen (t/minus (l/local-now) (t/hours 2)))
-        objectpark-node2 (objectpark-node2-id nodes)
-        mocked-objectpark-node2 (assoc objectpark-node2 :lastseen (t/minus (l/local-now) (t/hours 2)))
-        ]
-    (comment (assoc nodes objectpark-node1-id mocked-objectpark-node1 objectpark-node2-id mocked-objectpark-node2))
-    (println "objectpark last seen:" (:lastseen objectpark-node1) (get-in objectpark-node1 send-alerts?-path) "expired:" (node-seen-since? objectpark-node1 (t/minus (l/local-now) (t/minutes threshold-minutes))))
-    nodes))
 
 (defn -main
   "Sends notification emails to matching vanished node-owners."
