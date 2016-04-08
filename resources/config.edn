@@ -4,4 +4,6 @@
                 :pass "password"
                 :ssl false}
          :from "Freifunk KBU Monitor <freifunk-monitor@objectpark.org>"
-         :subject "Problem mit Freifunk Router(n)?"}}
+         :subject "Problem mit Freifunk Router(n)?"
+         :body "Lieber Freifunker!\n\n Die Freifunk-Karte <https://map.kbu.freifunk.net> meldet, dass folgende Router möglicherweise nicht erreichbar sind:\n\n{{&node-list}}\n Euer Freifunk-Monitor-Team\n"}}
+
