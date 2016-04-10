@@ -75,7 +75,7 @@
     (postal/send-message (:smtp email-config)
                          {:from (:from email-config)
                           :to (if DEBUG
-                                "freifunk-monitor@objectpark.org"
+                                (:from email-config)
                                 email-address)
                           :subject (:subject email-config)
                           :body (c/render (:body email-config) {:node-list affected-routers-text})})))
@@ -83,20 +83,21 @@
 (defn -main
   "Sends notification emails to matching vanished node-owners."
   [& args]
-  (let [config (load-config)
-        vanished-nodes (nodes-vanished-since (node-infos (first (:nodes-urls config)))
-                                             (t/minus (l/local-now) (t/minutes threshold-minutes)))
-        nodes-for-notification (filter (fn [x]
-                                         (and (send-alert-requested? x)
-                                              (valid-email-address?
-                                               (get-in x email-address-path))))
-                                       vanished-nodes)
+  (let [config (load-config)]
+    (doseq [node-infos (:nodes-urls config)]
+      (let [vanished-nodes (nodes-vanished-since node-infos
+                                                 (t/minus (l/local-now) (t/minutes threshold-minutes)))
+            nodes-for-notification (filter (fn [x]
+                                             (and (send-alert-requested? x)
+                                                  (valid-email-address?
+                                                   (get-in x email-address-path))))
+                                           vanished-nodes)
         grouped-by-email-address (group-by
                                   #(get-in % email-address-path)
                                   nodes-for-notification)]
     (doseq [node-infos-for-email-address grouped-by-email-address]
       (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
-    (println "Sent" (count grouped-by-email-address) "notification email(s).")))
+    (println "Sent" (count grouped-by-email-address) "notification email(s).")))))
 
 (defn run-every-minutes [minutes f & args]
   (loop []
