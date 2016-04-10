@@ -101,5 +101,6 @@
 
 (defn run-every-minutes [minutes f & args]
   (loop []
-    (f args)
-    (Thread/sleep (* 1000 60 minutes)) (recur)))
+    (apply f args)
+    (Thread/sleep (* 1000 60 minutes))
+    (recur)))
