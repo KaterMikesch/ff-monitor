@@ -81,23 +81,25 @@
                           :body (c/render (:body email-config) {:node-list affected-routers-text})})))
 
 (defn check
-   "Sends notification emails to matching vanished node-owners."
-   [& args]
-   (let [config (load-config)]
-        (doseq [node-infos (:nodes-urls config)]
-      (let [vanished-nodes (nodes-vanished-since node-infos
-                                                 (t/minus (l/local-now) (t/minutes threshold-minutes)))
-            nodes-for-notification (filter (fn [x]
-                                             (and (send-alert-requested? x)
-                                                  (valid-email-address?
-                                                   (get-in x email-address-path))))
-                                           vanished-nodes)
+  "Sends notification emails to matching vanished node-owners."
+  [& args]
+  (let [config (load-config)
+        nodes (reduce (fn [x y]
+                        (conj x (node-infos y))) [] (:nodes-urls config))
+        vanished-nodes (nodes-vanished-since nodes
+                                             (t/minus (l/local-now) (t/minutes threshold-minutes)))
+        nodes-for-notification (filter (fn [x]
+                                         (and (send-alert-requested? x)
+                                              (valid-email-address?
+                                               (get-in x email-address-path))))
+                                       vanished-nodes)
         grouped-by-email-address (group-by
                                   #(get-in % email-address-path)
                                   nodes-for-notification)]
+    (println (count nodes))
     (doseq [node-infos-for-email-address grouped-by-email-address]
       (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
-    (println "Checked for vanished nodes. Sent" (count grouped-by-email-address) "notification email(s).")))))
+    (println "Checked for vanished nodes. Sent" (count grouped-by-email-address) "notification email(s).")))
 
 (defn run-every-minutes [minutes f & args]
   (loop []
@@ -106,8 +108,8 @@
     (recur)))
 
 (defn -main
-      "No arguments supported yet."
-      [& args]
-      (run-every-minutes 20 check))
+  "No arguments supported yet."
+  [& args]
+  (run-every-minutes 20 check))
 
 
