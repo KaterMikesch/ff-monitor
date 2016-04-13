@@ -27,8 +27,6 @@
     (f/parse value)
     value))
 
-(def threshold-minutes 60)
-
 (defn node-infos [url]
   (let [nodes (:nodes (json/read-str (slurp url)
                                      :key-fn keyword
@@ -82,12 +80,12 @@
 
 (defn check
   "Sends notification emails to matching vanished node-owners."
-  [& args]
+  [interval]
   (let [config (load-config)
         nodes (reduce (fn [x y]
                         (conj x (node-infos y))) [] (:nodes-urls config))
         vanished-nodes (nodes-vanished-since nodes
-                                             (t/minus (l/local-now) (t/minutes threshold-minutes)))
+                                             (t/minus (l/local-now) (t/minutes interval)))
         nodes-for-notification (filter (fn [x]
                                          (and (send-alert-requested? x)
                                               (valid-email-address?
@@ -110,6 +108,7 @@
 (defn -main
   "No arguments supported yet."
   [& args]
-  (run-every-minutes 20 check))
+  (let [interval 20]
+    (run-every-minutes interval check interval)))
 
 
