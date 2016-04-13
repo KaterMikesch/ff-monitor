@@ -83,7 +83,7 @@
   [interval]
   (let [config (load-config)
         nodes (reduce (fn [x y]
-                        (conj x (node-infos y))) [] (:nodes-urls config))
+                        (concat x (node-infos y))) [] (:nodes-urls config))
         vanished-nodes (nodes-vanished-since nodes
                                              (t/minus (l/local-now) (t/minutes interval)))
         nodes-for-notification (filter (fn [x]
@@ -94,7 +94,7 @@
         grouped-by-email-address (group-by
                                   #(get-in % email-address-path)
                                   nodes-for-notification)]
-    (println (count nodes))
+    (println "Checking" (count nodes) "nodes.")
     (doseq [node-infos-for-email-address grouped-by-email-address]
       (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
     (println "Checked for vanished nodes. Sent" (count grouped-by-email-address) "notification email(s).")))
