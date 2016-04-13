@@ -10,7 +10,7 @@
 
 ;; if DEBUG true, all notification emails will be sent to a
 ;; test email address instead of real owners' email addresses
-(def DEBUG true)
+(def DEBUG false)
 
 ;; access paths into node status info maps
 (def email-address-path [:nodeinfo :owner :contact])
@@ -80,11 +80,11 @@
                           :subject (:subject email-config)
                           :body (c/render (:body email-config) {:node-list affected-routers-text})})))
 
-(defn -main
-  "Sends notification emails to matching vanished node-owners."
-  [& args]
-  (let [config (load-config)]
-    (doseq [node-infos (:nodes-urls config)]
+(defn check
+   "Sends notification emails to matching vanished node-owners."
+   [& args]
+   (let [config (load-config)]
+        (doseq [node-infos (:nodes-urls config)]
       (let [vanished-nodes (nodes-vanished-since node-infos
                                                  (t/minus (l/local-now) (t/minutes threshold-minutes)))
             nodes-for-notification (filter (fn [x]
@@ -97,10 +97,17 @@
                                   nodes-for-notification)]
     (doseq [node-infos-for-email-address grouped-by-email-address]
       (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
-    (println "Sent" (count grouped-by-email-address) "notification email(s).")))))
+    (println "Checked for vanished nodes. Sent" (count grouped-by-email-address) "notification email(s).")))))
 
 (defn run-every-minutes [minutes f & args]
   (loop []
     (apply f args)
     (Thread/sleep (* 1000 60 minutes))
     (recur)))
+
+(defn -main
+      "No arguments supported yet."
+      [& args]
+      (run-every-minutes 20 check))
+
+
