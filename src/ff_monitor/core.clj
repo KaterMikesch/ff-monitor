@@ -48,6 +48,12 @@
                        (not (node-online? x))))
           node-infos))
 
+(defn nodes-last-seen-in-interval [node-infos start-dt end-dt]
+  (filter (fn [x] (and (send-alert-requested? x)
+                       (t/within? start-dt end-dt (:lastseen x))
+                       (not (node-online? x))))
+          node-infos))
+
 (defn valid-email-address?
 "Checks if given string is a valid email address (RFC 2822 compliant)."
   [email-address]
@@ -84,8 +90,10 @@
   (let [config (load-config)
         nodes (reduce (fn [x y]
                         (concat x (node-infos y))) [] (:nodes-urls config))
-        vanished-nodes (nodes-vanished-since nodes
-                                             (t/minus (l/local-now) (t/minutes interval)))
+        vanished-nodes (nodes-last-seen-in-interval
+                        nodes
+                        (t/minus (l/local-now) (t/minutes (* 2 interval)))
+                        (t/minus (l/local-now) (t/minutes interval)))
         nodes-for-notification (filter (fn [x]
                                          (and (send-alert-requested? x)
                                               (valid-email-address?
@@ -97,7 +105,7 @@
     (println "Checking" (count nodes) "nodes.")
     (doseq [node-infos-for-email-address grouped-by-email-address]
       (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
-    (println "Checked for vanished nodes. Sent" (count grouped-by-email-address) "notification email(s).")))
+    (println "Sent" (count grouped-by-email-address) "notification email(s) for" (count nodes-for-notification) "vanished nodes (using the given interval info).")))
 
 (defn run-every-minutes [minutes f & args]
   (loop []
@@ -110,5 +118,3 @@
   [& args]
   (let [interval 20]
     (run-every-minutes interval check interval)))
-
-
