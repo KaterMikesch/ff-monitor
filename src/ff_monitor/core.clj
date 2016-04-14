@@ -36,17 +36,8 @@
 (defn send-alert-requested? [node-info]
   (get-in node-info send-alerts?-path))
 
-(defn node-seen-since? [node-info dt]
-  (t/after? (:lastseen node-info) dt))
-
 (defn node-online? [node-info]
   (get-in node-info online?-path))
-
-(defn nodes-vanished-since [node-infos dt]
-  (filter (fn [x] (and (send-alert-requested? x)
-                       (not (node-seen-since? x dt))
-                       (not (node-online? x))))
-          node-infos))
 
 (defn nodes-last-seen-in-interval [node-infos start-dt end-dt]
   (filter (fn [x] (and (send-alert-requested? x)
