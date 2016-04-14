@@ -118,3 +118,7 @@
   [& args]
   (let [interval 20]
     (run-every-minutes interval check interval)))
+
+;; future plan is having two parameters
+;; - time of last check
+;; - max. duration where a node is allowed to not been seen before being vanished
