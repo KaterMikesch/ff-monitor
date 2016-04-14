@@ -92,8 +92,8 @@
                         (concat x (node-infos y))) [] (:nodes-urls config))
         vanished-nodes (nodes-last-seen-in-interval
                         nodes
-                        (t/minus (l/local-now) (t/minutes (* 2 interval)))
-                        (t/minus (l/local-now) (t/minutes interval)))
+                        (t/minus (l/local-now) (t/minutes interval))
+                        (l/local-now))
         nodes-for-notification (filter (fn [x]
                                          (and (send-alert-requested? x)
                                               (valid-email-address?
@@ -105,7 +105,7 @@
     (println "Checking" (count nodes) "nodes.")
     (doseq [node-infos-for-email-address grouped-by-email-address]
       (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
-    (println "Sent" (count grouped-by-email-address) "notification email(s) for" (count nodes-for-notification) "vanished nodes (using the given interval info).")))
+    (println "Sent" (count grouped-by-email-address) "notification email(s) for" (count nodes-for-notification) "vanished node(s) (using the given interval info).")))
 
 (defn run-every-minutes [minutes f & args]
   (loop []
