@@ -78,25 +78,26 @@
 (defn check
   "Sends notification emails to matching vanished node-owners."
   [interval]
-  (let [config (load-config)
-        nodes (reduce (fn [x y]
-                        (concat x (node-infos y))) [] (:nodes-urls config))
-        vanished-nodes (nodes-last-seen-in-interval
-                        nodes
-                        (t/minus (l/local-now) (t/minutes interval))
-                        (l/local-now))
-        nodes-for-notification (filter (fn [x]
-                                         (and (send-alert-requested? x)
-                                              (valid-email-address?
-                                               (get-in x email-address-path))))
-                                       vanished-nodes)
-        grouped-by-email-address (group-by
-                                  #(get-in % email-address-path)
-                                  nodes-for-notification)]
-    (println "Checking" (count nodes) "nodes.")
-    (doseq [node-infos-for-email-address grouped-by-email-address]
-      (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
-    (println "Sent" (count grouped-by-email-address) "notification email(s) for" (count nodes-for-notification) "vanished node(s) (using the given interval info).")))
+  (try (let [config (load-config)
+             nodes (reduce (fn [x y]
+                             (concat x (node-infos y))) [] (:nodes-urls config))
+             vanished-nodes (nodes-last-seen-in-interval
+                             nodes
+                             (t/minus (l/local-now) (t/minutes interval))
+                             (l/local-now))
+             nodes-for-notification (filter (fn [x]
+                                              (and (send-alert-requested? x)
+                                                   (valid-email-address?
+                                                    (get-in x email-address-path))))
+                                            vanished-nodes)
+             grouped-by-email-address (group-by
+                                       #(get-in % email-address-path)
+                                       nodes-for-notification)]
+         (println "Checking" (count nodes) "nodes.")
+         (doseq [node-infos-for-email-address grouped-by-email-address]
+           (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
+         (println "Sent" (count grouped-by-email-address) "notification email(s) for" (count nodes-for-notification) "vanished node(s) (using the given interval info)."))
+       (catch Exception e (println e))))
 
 (defn run-every-minutes [minutes f & args]
   (loop []
