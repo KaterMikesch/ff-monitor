@@ -79,7 +79,7 @@
   "Sends notification emails to matching vanished node-owners."
   [interval]
   (try
-    (let [config (load-config)
+    (let [config (load-config :file "/usr/local/etc/ff-monitor.edn")
           nodes (reduce (fn [x y]
                           (concat x (node-infos y))) [] (:nodes-urls config))
           vanished-nodes (nodes-last-seen-in-interval
