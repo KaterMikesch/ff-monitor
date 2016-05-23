@@ -1,4 +1,4 @@
-{:nodes-urls ["https://some" "https://map" "https://urls"]
+{:nodes-urls ["https://somedomain.com" "https://someotherdomain.com"]
  :email {:smtp {:host "mailhost"
                 :user "login"
                 :pass "password"
