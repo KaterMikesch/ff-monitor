@@ -1,4 +1,4 @@
-{:nodes-urls ["https://somedomain.com" "https://someotherdomain.com"]
+{:nodes-urls ["https://http://randomsampledomain.com" "https://someotherdomain.com"]
  :email {:smtp {:host "mailhost"
                 :user "login"
                 :pass "password"
