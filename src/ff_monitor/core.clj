@@ -7,6 +7,7 @@
             [clojure.java.io :refer [as-url]]
             [clojure.data.json :as json]
             [postal.core :as postal]
+            [postal.message :as message]
             [cprop.core :refer [load-config]]
             [clojure.spec :as s]))
 
@@ -14,20 +15,25 @@
 ;; test email address instead of real owners' email addresses
 (def DEBUG false)
 
-(defn valid-email-address?
+(defn contains-valid-email-address?
 "Checks if given string is a valid email address (RFC 2822 compliant)."
-  [email-address]
-  (let [pattern #"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"]
-    (and (string? email-address) (re-matches pattern email-address))))
+  [^String email-address]
+  (let [address (message/make-address email-address "utf-8")]
+    (not (nil? address))))
 
-;; access paths into node status info maps
-
+;; config spec
 (s/def ::truthy (s/or :nil nil? :bool #(instance? Boolean %)))
 (s/def ::url #(some? (try (as-url %) (catch Exception e))))
 
 (s/def ::nodes-urls (s/+ ::url))
+(s/def ::ssl ::truthy)
+(s/def ::smtp (s/keys :req-un [::host ::user] :opt-un [::pass ::ssl]))
+(s/def ::from contains-valid-email-address?)
+(s/def ::email (s/keys :req-un [::smtp ::from]))
+(s/def ::config (s/keys :req-un [::nodes-urls ::email]))
 
-(s/def ::contact valid-email-address?)
+;; access paths into node status info maps
+(s/def ::contact contains-valid-email-address?)
 (s/def ::send_alerts ::truthy)
 (s/def ::hostname string?)
 (s/def ::node_id some?)
@@ -102,7 +108,7 @@
                           (l/local-now))
           nodes-for-notification (filter (fn [x]
                                            (and (send-alert-requested? x)
-                                                (valid-email-address?
+                                                (contains-valid-email-address?
                                                  (get-in x email-address-path))))
                                          vanished-nodes)
           grouped-by-email-address (group-by
