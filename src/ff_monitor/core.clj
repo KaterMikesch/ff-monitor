@@ -23,11 +23,11 @@
     (not (nil? address))))
 
 ;; config spec
-(s/def ::truthy (s/or :nil nil? :bool #(instance? Boolean %)))
+(s/def ::truthy (s/nilable #(instance? Boolean %)))
 (s/def ::url #(some? (try (as-url %) (catch Exception e))))
 
-(s/def ::nodes-urls (s/+ ::url))
-(s/def ::ssl ::truthy)
+(s/def ::nodes-urls (s/* ::url))
+(s/def ::ssl #(instance? Boolean %))
 (s/def ::smtp (s/keys :req-un [::host ::user] :opt-un [::pass ::ssl]))
 (s/def ::from contains-valid-email-address?)
 (s/def ::email (s/keys :req-un [::smtp ::from]))
