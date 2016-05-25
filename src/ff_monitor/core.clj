@@ -141,7 +141,7 @@
   (let [interval 20]
     (try
       (run-every-minutes interval check interval)
-      (catch Exception e (println (.getMessage e))))))
+      (catch Exception e -1))))
 
 ;; future plan is having two parameters
 ;; - time of last check
