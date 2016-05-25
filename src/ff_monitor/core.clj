@@ -4,15 +4,35 @@
             [clj-time.format :as f]
             [clj-time.local :as l]
             [clostache.parser :as c]
+            [clojure.java.io :refer [as-url]]
             [clojure.data.json :as json]
             [postal.core :as postal]
-            [cprop.core :refer [load-config]]))
+            [cprop.core :refer [load-config]]
+            [clojure.spec :as s]))
 
 ;; if DEBUG true, all notification emails will be sent to a
 ;; test email address instead of real owners' email addresses
 (def DEBUG false)
 
+(defn valid-email-address?
+"Checks if given string is a valid email address (RFC 2822 compliant)."
+  [email-address]
+  (let [pattern #"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"]
+    (and (string? email-address) (re-matches pattern email-address))))
+
 ;; access paths into node status info maps
+
+(s/def ::truthy (s/or :nil nil? :bool #(instance? Boolean %)))
+(s/def ::url #(some? (try (as-url %) (catch Exception e))))
+
+(s/def ::nodes-urls (s/+ ::url))
+
+(s/def ::contact valid-email-address?)
+(s/def ::send_alerts ::truthy)
+(s/def ::hostname string?)
+(s/def ::node_id some?)
+(s/def ::online ::truthy)
+
 (def email-address-path [:nodeinfo :owner :contact])
 (def send-alerts?-path [:nodeinfo :send_alerts])
 (def hostname-path [:nodeinfo :hostname])
@@ -44,12 +64,6 @@
                        (t/within? start-dt end-dt (:lastseen x))
                        (not (node-online? x))))
           node-infos))
-
-(defn valid-email-address?
-"Checks if given string is a valid email address (RFC 2822 compliant)."
-  [email-address]
-  (let [pattern #"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"]
-    (and (string? email-address) (re-matches pattern email-address))))
 
 (def date-formatter (f/formatter "d.M.yyyy" (t/default-time-zone)))
 (def time-formatter (f/formatter "H:m"  (t/default-time-zone)))
