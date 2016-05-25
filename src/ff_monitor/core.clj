@@ -10,7 +10,8 @@
             [postal.message :as message]
             [cprop.core :refer [load-config]]
             [clojure.spec :as s]
-            [clojure.tools.logging :as log]))
+            [clojure.tools.logging :as log])
+  (:import (java.lang Exception)))
 
 ;; if DEBUG true, all notification emails will be sent to a
 ;; test email address instead of real owners' email addresses
@@ -101,9 +102,9 @@
 (defn check
   "Sends notification emails to matching vanished node-owners."
   [interval]
-  (try
-    (let [config (load-config :file "/usr/local/etc/ff-monitor.edn")]
-      (if (s/valid? ::config config)
+  (let [config (load-config :file "/usr/local/etc/ff-monitor.edn")]
+    (if (s/valid? ::config config)
+      (try
         (let [nodes (reduce (fn [x y]
                               (concat x (node-infos y))) [] (:nodes-urls config))
               vanished-nodes (nodes-last-seen-in-interval
@@ -122,8 +123,11 @@
           (doseq [node-infos-for-email-address grouped-by-email-address]
             (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
           (log/info "Sent" (count grouped-by-email-address) "notification email(s) for" (count nodes-for-notification) "vanished node(s) (using the given interval info)."))
-        (log/error (str "Aborted. Invalid configuration file:\n" (s/explain ::config config)))))
-    (catch Exception e (println e))))
+        (catch Exception e (println e)))
+      (do
+        (log/error (str "Aborted. Invalid configuration file:\n" (s/explain-data ::config config)))
+        (throw (Exception. (str (s/explain-data ::config config))))))))
+
 
 (defn run-every-minutes [minutes f & args]
   (loop []
