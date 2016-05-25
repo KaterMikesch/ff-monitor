@@ -9,7 +9,8 @@
             [postal.core :as postal]
             [postal.message :as message]
             [cprop.core :refer [load-config]]
-            [clojure.spec :as s]))
+            [clojure.spec :as s]
+            [clojure.tools.logging :as log]))
 
 ;; if DEBUG true, all notification emails will be sent to a
 ;; test email address instead of real owners' email addresses
@@ -115,11 +116,11 @@
               grouped-by-email-address (group-by
                                         #(get-in % email-address-path)
                                         nodes-for-notification)]
-          (println "Checking" (count nodes) "nodes.")
+          (log/info "Checking" (count nodes) "nodes.")
           (doseq [node-infos-for-email-address grouped-by-email-address]
             (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
-          (println "Sent" (count grouped-by-email-address) "notification email(s) for" (count nodes-for-notification) "vanished node(s) (using the given interval info)."))
-        (println "Aborted. Invalid configuration file:\n" (s/explain ::config config))))
+          (log/info "Sent" (count grouped-by-email-address) "notification email(s) for" (count nodes-for-notification) "vanished node(s) (using the given interval info)."))
+        (log/error "Aborted. Invalid configuration file:\n" (s/explain ::config config))))
     (catch Exception e (println e))))
 
 (defn run-every-minutes [minutes f & args]
