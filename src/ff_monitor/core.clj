@@ -123,10 +123,10 @@
           (doseq [node-infos-for-email-address grouped-by-email-address]
             (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
           (log/info "Sent" (count grouped-by-email-address) "notification email(s) for" (count nodes-for-notification) "vanished node(s) (using the given interval info)."))
-        (catch Exception e (println e)))
+        (catch Exception e (log/error e)))
       (do
         (log/error (str "Aborted. Invalid configuration file:\n" (s/explain-data ::config config)))
-        (throw (Exception. (str (s/explain-data ::config config))))))))
+        (throw (Exception. (str "Aborted. Invalid configuration file:\n" (s/explain-data ::config config))))))))
 
 
 (defn run-every-minutes [minutes f & args]
@@ -139,7 +139,9 @@
   "No arguments supported yet."
   [& args]
   (let [interval 20]
-    (run-every-minutes interval check interval)))
+    (try
+      (run-every-minutes interval check interval)
+      (catch Exception e (println (.getMessage e))))))
 
 ;; future plan is having two parameters
 ;; - time of last check
