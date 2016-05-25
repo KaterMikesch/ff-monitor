@@ -28,6 +28,8 @@
 
 (s/def ::nodes-urls (s/* ::url))
 (s/def ::ssl #(instance? Boolean %))
+(s/def ::host string?)
+(s/def ::user string?)
 (s/def ::smtp (s/keys :req-un [::host ::user] :opt-un [::pass ::ssl]))
 (s/def ::from contains-valid-email-address?)
 (s/def ::email (s/keys :req-un [::smtp ::from]))
