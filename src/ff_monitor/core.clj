@@ -10,7 +10,8 @@
             [postal.message :as message]
             [cprop.core :refer [load-config]]
             [clojure.spec :as spec]
-            [clojure.tools.logging :as log])
+            [clojure.tools.logging :as log]
+            [clojure.pprint :as pp])
   (:import (java.lang Exception)))
 
 ;; if DEBUG true, all notification emails will be sent to a
@@ -24,7 +25,6 @@
     (not (nil? address))))
 
 ;; config spec
-(spec/def ::truthy (spec/nilable #(instance? Boolean %)))
 (spec/def ::url #(some? (try (as-url %) (catch Exception e))))
 
 (spec/def ::nodes-urls (spec/* ::url))
@@ -37,17 +37,25 @@
 (spec/def ::config (spec/keys :req-un [::nodes-urls ::email]))
 
 ;; access paths into node status info maps
-(spec/def ::contact contains-valid-email-address?)
-(spec/def ::send_alerts ::truthy)
+(spec/def ::contact (spec/or :email-address contains-valid-email-address? :rubbish string?))
+(spec/def ::send_alerts #(instance? Boolean %))
 (spec/def ::hostname string?)
 (spec/def ::node_id some?)
-(spec/def ::online ::truthy)
+(spec/def ::online #(instance? Boolean %))
+(spec/def ::lastseen #(instance? org.joda.time.DateTime %))
 
-(def email-address-path [:nodeinfo :owner :contact])
-(def send-alerts?-path [:nodeinfo :send_alerts])
+(def contact-path [:nodeinfo :owner :contact])
 (def hostname-path [:nodeinfo :hostname])
 (def id-path [:nodeinfo :node_id])
 (def online?-path [:flags :online])
+
+(spec/def ::flags (spec/keys :req-un [::online]))
+(spec/def ::owner (spec/keys :opt-un [::contact]))
+(spec/def ::nodeinfo (spec/keys :req-un [::hostname ::node_id]
+                                :opt-un [::owner ::send_alerts]))
+(spec/def ::node (spec/keys :req-un [::flags ::nodeinfo]
+                            :opt-un [::lastseen]))
+(spec/def ::nodes (spec/* ::node))
 
 ;; convert all date info to clj-time datetime objects
 (defn value-coercer [key value]
@@ -58,16 +66,26 @@
     value))
 
 (defn node-infos [url]
-  (let [nodes (:nodes (json/read-str (slurp url)
-                                     :key-fn keyword
-                                     :value-fn value-coercer))]
-    (vals nodes)))
+  (let [nodes (vals (:nodes (json/read-str (slurp url)
+                                            :key-fn keyword
+                                            :value-fn value-coercer)))]
+    (let [node-infos (spec/conform ::nodes nodes)]
+      ;;; (pp/pprint node-infos)
+      (if (= :spec/invalid node-infos)
+        (throw (Exception. (str "Invalid nodes JSON:\n"
+                                (spec/explain-str ::nodes nodes))))
+        node-infos))))
 
 (defn send-alert-requested? [node-info]
-  (get-in node-info send-alerts?-path))
+  (:send_alerts (:nodeinfo node-info)))
 
 (defn node-online? [node-info]
   (get-in node-info online?-path))
+
+(defn email-address [n]
+  (let [contact (get-in n contact-path)]
+    (if (= :email-address (first contact))
+      (second contact))))
 
 (defn nodes-last-seen-in-interval [node-infos start-dt end-dt]
   (filter (fn [x] (and (send-alert-requested? x)
@@ -81,8 +99,7 @@
 (defn send-notification-email
   "Assuming email-address (aka contact) in all given node-infos is the same."
   [node-infos email-config]
-  (let [email-address (get-in (first node-infos) email-address-path)
-
+  (let [email-address (email-address (first node-infos))
         affected-routers-text (reduce (fn [previous-text node-info]
                                         (let [last-seen (:lastseen node-info)
                                               replacements {:last-seen-date (f/unparse date-formatter last-seen)
@@ -111,18 +128,23 @@
                               nodes
                               (t/minus (l/local-now) (t/minutes interval))
                               (l/local-now))
-              nodes-for-notification (filter (fn [x]
-                                               (and (send-alert-requested? x)
-                                                    (contains-valid-email-address?
-                                                     (get-in x email-address-path))))
+              nodes-for-notification (filter (fn [n]
+                                               (and (send-alert-requested? n)
+                                                     (email-address n)))
                                              vanished-nodes)
               grouped-by-email-address (group-by
-                                        #(get-in % email-address-path)
+                                        #(email-address %)
                                         nodes-for-notification)]
-          (log/info "Checking" (count nodes) "nodes.")
+          (log/info "Checking"
+                    (count (filter (fn [n]
+                                     (and (send-alert-requested? n)
+                                          (email-address n)))
+                                   nodes))
+                    "of" (count nodes)
+                    "nodes (those which have 'send_alerts' set to true).")
           (doseq [node-infos-for-email-address grouped-by-email-address]
             (send-notification-email
-             (nth node-infos-for-email-address 1)
+             (nth node-infos-for-email-address 1) ;; nodeinfos from grouped collection
              (:email config)))
           (log/info "Sent"
                     (count grouped-by-email-address)
