@@ -121,12 +121,20 @@
                                         nodes-for-notification)]
           (log/info "Checking" (count nodes) "nodes.")
           (doseq [node-infos-for-email-address grouped-by-email-address]
-            (send-notification-email (nth node-infos-for-email-address 1) (:email config)))
-          (log/info "Sent" (count grouped-by-email-address) "notification email(s) for" (count nodes-for-notification) "vanished node(s) (using the given interval info)."))
+            (send-notification-email
+             (nth node-infos-for-email-address 1)
+             (:email config)))
+          (log/info "Sent"
+                    (count grouped-by-email-address)
+                    "notification email(s) for"
+                    (count nodes-for-notification)
+                    "vanished node(s) (using the given interval info)."))
         (catch Exception e (log/error e)))
       (do
-        (log/error (str "Aborted. Invalid configuration file:\n" (s/explain-data ::config config)))
-        (throw (Exception. (str "Aborted. Invalid configuration file:\n" (s/explain-data ::config config))))))))
+        (log/error (str "Aborted. Invalid configuration file:\n"
+                        (s/explain-str ::config config)))
+        (throw (Exception. (str "Aborted. Invalid configuration file:\n"
+                                (s/explain-str ::config config))))))))
 
 
 (defn run-every-minutes [minutes f & args]
