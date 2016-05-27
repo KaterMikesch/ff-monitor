@@ -85,7 +85,8 @@
 (defn email-address [n]
   (let [contact (get-in n contact-path)]
     (if (= :email-address (first contact))
-      (second contact))))
+      (second contact)
+      (log/warn "Illegal value for 'contact' in node:" n))))
 
 (defn nodes-last-seen-in-interval [node-infos start-dt end-dt]
   (filter (fn [x] (and (send-alert-requested? x)
