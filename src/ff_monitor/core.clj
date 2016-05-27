@@ -9,7 +9,7 @@
             [postal.core :as postal]
             [postal.message :as message]
             [cprop.core :refer [load-config]]
-            [clojure.spec :as s]
+            [clojure.spec :as spec]
             [clojure.tools.logging :as log])
   (:import (java.lang Exception)))
 
@@ -24,24 +24,24 @@
     (not (nil? address))))
 
 ;; config spec
-(s/def ::truthy (s/nilable #(instance? Boolean %)))
-(s/def ::url #(some? (try (as-url %) (catch Exception e))))
+(spec/def ::truthy (spec/nilable #(instance? Boolean %)))
+(spec/def ::url #(some? (try (as-url %) (catch Exception e))))
 
-(s/def ::nodes-urls (s/* ::url))
-(s/def ::ssl #(instance? Boolean %))
-(s/def ::host string?)
-(s/def ::user string?)
-(s/def ::smtp (s/keys :req-un [::host ::user] :opt-un [::pass ::ssl]))
-(s/def ::from contains-valid-email-address?)
-(s/def ::email (s/keys :req-un [::smtp ::from]))
-(s/def ::config (s/keys :req-un [::nodes-urls ::email]))
+(spec/def ::nodes-urls (spec/* ::url))
+(spec/def ::ssl #(instance? Boolean %))
+(spec/def ::host string?)
+(spec/def ::user string?)
+(spec/def ::smtp (spec/keys :req-un [::host ::user] :opt-un [::pass ::ssl]))
+(spec/def ::from contains-valid-email-address?)
+(spec/def ::email (spec/keys :req-un [::smtp ::from]))
+(spec/def ::config (spec/keys :req-un [::nodes-urls ::email]))
 
 ;; access paths into node status info maps
-(s/def ::contact contains-valid-email-address?)
-(s/def ::send_alerts ::truthy)
-(s/def ::hostname string?)
-(s/def ::node_id some?)
-(s/def ::online ::truthy)
+(spec/def ::contact contains-valid-email-address?)
+(spec/def ::send_alerts ::truthy)
+(spec/def ::hostname string?)
+(spec/def ::node_id some?)
+(spec/def ::online ::truthy)
 
 (def email-address-path [:nodeinfo :owner :contact])
 (def send-alerts?-path [:nodeinfo :send_alerts])
@@ -103,7 +103,7 @@
   "Sends notification emails to matching vanished node-owners."
   [interval]
   (let [config (load-config :file "/usr/local/etc/ff-monitor.edn")]
-    (if (s/valid? ::config config)
+    (if (spec/valid? ::config config)
       (try
         (let [nodes (reduce (fn [x y]
                               (concat x (node-infos y))) [] (:nodes-urls config))
@@ -132,9 +132,9 @@
         (catch Exception e (log/error e)))
       (do
         (log/error (str "Aborted. Invalid configuration file:\n"
-                        (s/explain-str ::config config)))
+                        (spec/explain-str ::config config)))
         (throw (Exception. (str "Aborted. Invalid configuration file:\n"
-                                (s/explain-str ::config config))))))))
+                                (spec/explain-str ::config config))))))))
 
 
 (defn run-every-minutes [minutes f & args]
