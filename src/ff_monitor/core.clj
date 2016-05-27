@@ -151,7 +151,7 @@
                     (count grouped-by-email-address)
                     "notification email(s) for"
                     (count nodes-for-notification)
-                    "vanished node(s) (using the given interval info)."))
+                    "vanished node(s) (using the given interval:" interval "mins)"))
         (catch Exception e (log/error e)))
       (do
         (log/error (str "Aborted. Invalid configuration file:\n"
