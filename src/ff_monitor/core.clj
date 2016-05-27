@@ -142,7 +142,7 @@
                                           (email-address n)))
                                    nodes))
                     "of" (count nodes)
-                    "nodes (those which have 'send_alerts' set to true).")
+                    "nodes (those which have 'send_alerts' set to true and have a valid email address in 'contact').")
           (doseq [node-infos-for-email-address grouped-by-email-address]
             (send-notification-email
              (nth node-infos-for-email-address 1) ;; nodeinfos from grouped collection
