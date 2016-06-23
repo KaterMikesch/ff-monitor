@@ -72,7 +72,7 @@
     ;; (pp/pprint (first nodes))
     (let [node-infos (spec/conform ::nodes nodes)]
       ;; (pp/pprint node-infos)
-      (if (= :spec/invalid node-infos)
+      (if (= :clojure.spec/invalid node-infos)
         (throw (Exception. (str "Invalid nodes JSON:\n"
                                 (spec/explain-str ::nodes nodes))))
         node-infos))))
