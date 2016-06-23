@@ -28,7 +28,7 @@
 (spec/def ::url #(some? (try (as-url %) (catch Exception e))))
 
 (spec/def ::nodes-urls (spec/* ::url))
-(spec/def ::ssl #(instance? Boolean %))
+(spec/def ::ssl boolean?)
 (spec/def ::host string?)
 (spec/def ::user string?)
 (spec/def ::smtp (spec/keys :req-un [::host ::user] :opt-un [::pass ::ssl]))
