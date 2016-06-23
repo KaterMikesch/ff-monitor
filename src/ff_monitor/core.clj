@@ -38,10 +38,10 @@
 
 ;; access paths into node status info maps
 (spec/def ::contact (spec/or :email-address contains-valid-email-address? :rubbish string?))
-(spec/def ::send_alerts #(instance? Boolean %))
+(spec/def ::send_alerts boolean?)
 (spec/def ::hostname string?)
-(spec/def ::node_id some?)
-(spec/def ::online #(instance? Boolean %))
+(spec/def ::node_id (spec/nilable string?))
+(spec/def ::online boolean?)
 (spec/def ::lastseen #(instance? org.joda.time.DateTime %))
 
 (def contact-path [:nodeinfo :owner :contact])
@@ -66,11 +66,12 @@
     value))
 
 (defn node-infos [url]
-  (let [nodes (vals (:nodes (json/read-str (slurp url)
+  (let [nodes (:nodes (json/read-str (slurp url)
                                             :key-fn keyword
-                                            :value-fn value-coercer)))]
+                                            :value-fn value-coercer))]
+    ;; (pp/pprint (first nodes))
     (let [node-infos (spec/conform ::nodes nodes)]
-      ;;; (pp/pprint node-infos)
+      ;; (pp/pprint node-infos)
       (if (= :spec/invalid node-infos)
         (throw (Exception. (str "Invalid nodes JSON:\n"
                                 (spec/explain-str ::nodes nodes))))
