@@ -2,8 +2,10 @@
   (:gen-class)
   (:require [clj-time.core :as t]
             [clj-time.format :as f]
+            [clojure.string :as string]
             [clj-time.local :as l]
             [clostache.parser :as c]
+            [clojure.tools.cli :refer [parse-opts]]
             [clojure.java.io :refer [as-url]]
             [clojure.data.json :as json]
             [postal.core :as postal]
@@ -12,7 +14,70 @@
             [clojure.spec :as spec]
             [clojure.tools.logging :as log]
             [clojure.pprint :as pp])
-  (:import (java.lang Exception)))
+  (:import (java.lang Exception)
+           (java.net InetAddress)))
+
+(defn contextual-eval [ctx expr]
+      (eval                                           
+        `(let [~@(mapcat (fn [[k v]] [k `'~v]) ctx)] 
+           ~expr)))
+(defmacro local-context []
+          (let [symbols (keys &env)]
+            (zipmap (map (fn [sym] `(quote ~sym)) symbols) symbols)))
+(defn readr [prompt exit-code]
+      (let [input (clojure.main/repl-read prompt exit-code)]
+        (if (= input ::tl)
+            exit-code
+            input)))
+;;make a break point
+(defmacro break []
+          `(clojure.main/repl
+             :prompt #(print "debug=> ")
+             :read readr
+             :eval (partial contextual-eval (local-context))))
+
+(def cli-options
+     [;; First three strings describe a short-option, long-option with optional
+     ;; example argument description, and a description. All three are optional
+     ;; and positional.
+     ["-c" "--config PATH" "Path to configuration file"
+     :default "/usr/local/etc/ff-monitor.edn"
+     ;    :parse-fn #(Integer/parseInt %)
+     ;    :validate [#(< 0 % 0x10000) "Must be a number between 0 and 65536"]
+     ]
+     ["-i" "--interval Minutes" "Number of minutes between checks"
+     :default 20
+     :parse-fn #(Integer/parseInt %)
+     :validate [#(< 12 % 3600) "Must be a number between 0 and 3600"]]
+     ["-d" "--debug" "Run only once"]
+     ["-v" nil "Verbosity level; may be specified multiple times to increase value"
+     ;; If no long-option is specified, an option :id must be given
+     :id :verbosity
+     :default 0
+     ;; Use assoc-fn to create non-idempotent options
+     :assoc-fn (fn [m k _] (update-in m [k] inc))]
+     ["-h" "--help"]])
+
+(defn usage [options-summary]
+  (->> ["Checks for recently missing Freifunk nodes."
+        ""
+        "Usage: java -jar ff-monitor.jar [options]"
+        ""
+        "Options:"
+        options-summary
+        ""
+        "Example:"
+        "> java -jar ff-monitor.jar -i1 -c ./config.edn"
+        ""]
+       (string/join \newline)))
+
+(defn error-msg [errors]
+  (str "The following errors occurred while parsing your command:\n\n"
+       (string/join \newline errors)))
+
+(defn exit [status msg]
+  (println msg)
+  (System/exit status))
 
 ;; if DEBUG true, all notification emails will be sent to a
 ;; test email address instead of real owners' email addresses
@@ -120,15 +185,15 @@
 
 (defn check
   "Sends notification emails to matching vanished node-owners."
-  [interval]
-  (let [config (load-config :file "/usr/local/etc/ff-monitor.edn")]
+  [options]
+  (let [config (load-config :file (:config options))]
     (if (spec/valid? ::config config)
       (try
         (let [nodes (reduce (fn [x y]
                               (concat x (node-infos y))) [] (:nodes-urls config))
               vanished-nodes (nodes-last-seen-in-interval
                               nodes
-                              (t/minus (l/local-now) (t/minutes interval))
+                              (t/minus (l/local-now) (t/minutes (:interval options)))
                               (l/local-now))
               nodes-for-notification (filter (fn [n]
                                                (and (send-alert-requested? n)
@@ -152,7 +217,7 @@
                     (count grouped-by-email-address)
                     "notification email(s) for"
                     (count nodes-for-notification)
-                    "vanished node(s) (using the given interval:" interval "mins)"))
+                    "vanished node(s) (using the given interval:" (:interval options) "mins)"))
         (catch Exception e (log/error e)))
       (do
         (log/error (str "Aborted. Invalid configuration file:\n"
@@ -167,13 +232,24 @@
     (Thread/sleep (* 1000 60 minutes))
     (recur)))
 
-(defn -main
-  "No arguments supported yet."
-  [& args]
-  (let [interval 20]
-    (try
-      (run-every-minutes interval check interval)
-      (catch Exception e (System/exit 2)))))
+(defn main [options]
+      (let [interval (:interval options)]
+        (try
+          (if (:debug options)
+              (check options)
+              (run-every-minutes interval check options))
+          (catch Exception e (System/exit 2)))))
+
+(defn -main [& args]
+      (let [{:keys [options arguments errors summary]} (parse-opts args cli-options)]
+        ;; Handle help and error conditions
+        (cond
+          (:help options) (exit 0 (usage summary))
+          (.exists (clojure.java.io/as-file (:config options))) (main options)
+          errors (exit 1 (error-msg errors))
+          :else (exit 1 (usage summary)))))
+
+
 
 ;; future plan is having two parameters
 ;; - time of last check
