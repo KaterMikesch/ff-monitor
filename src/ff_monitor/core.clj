@@ -98,7 +98,9 @@
 (spec/def ::user string?)
 (spec/def ::smtp (spec/keys :req-un [::host ::user] :opt-un [::pass ::ssl]))
 (spec/def ::from contains-valid-email-address?)
-(spec/def ::email (spec/keys :req-un [::smtp ::from]))
+(spec/def ::subject string?)
+(spec/def ::body string?)
+(spec/def ::email (spec/keys :req-un [::smtp ::from ::subject ::body]))
 (spec/def ::config (spec/keys :req-un [::nodes-urls ::email]))
 
 ;; access paths into node status info maps
