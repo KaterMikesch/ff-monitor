@@ -18,5 +18,5 @@
   :bin {:name "ff-monitor"
         :bin-path "/usr/local/bin"
         :bootclasspath true}
-  ; :uberjar {:aot :all}
+  :uberjar {:aot :all}
             })
