@@ -195,8 +195,8 @@
                               (concat x (node-infos y))) [] (:nodes-urls config))
               vanished-nodes (nodes-last-seen-in-interval
                               nodes
-                              (t/minus (l/local-now) (t/minutes (:interval options)))
-                              (l/local-now))
+                              (t/minus (l/local-now) (t/minutes (* 2 (:interval options))))
+                              (t/minus (l/local-now) (t/minutes (:interval options))))
               nodes-for-notification (filter (fn [n]
                                                (and (send-alert-requested? n)
                                                      (email-address n)))
