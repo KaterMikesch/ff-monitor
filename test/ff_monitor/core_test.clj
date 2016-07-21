@@ -13,10 +13,10 @@
            :flags {:online false}
            :lastseen "2016-07-21T17:38:16.766Z"})
 
-(deftest nodes-last-seen-in-interval-test
+(deftest nodes-vanished-in-interval-test
   (testing "Should yield one node."
     (let [test-node (assoc node :lastseen (t/minus (l/local-now) (t/minutes (+ 2 interval-minutes))))]
       (is (spec/valid? :ff-monitor.core/node test-node))
-      (is (= 1 (count (nodes-last-seen-in-interval [test-node]
+      (is (= 1 (count (nodes-vanished-in-interval [test-node]
                                                    (t/minus (l/local-now) (t/minutes (* 2 interval-minutes)))
                                                    (t/minus (l/local-now) (t/minutes interval-minutes)))))))))

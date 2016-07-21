@@ -156,10 +156,9 @@
       (second contact)
       (log/warn "Illegal value for 'contact' in node:" n))))
 
-(defn nodes-last-seen-in-interval [node-infos start-dt end-dt]
-  (filter (fn [x] (and (send-alert-requested? x)
-                       (t/within? start-dt end-dt (:lastseen x))
-                       (not (node-online? x))))
+(defn nodes-vanished-in-interval [node-infos start-dt end-dt]
+  (filter (fn [n] (and (t/within? start-dt end-dt (:lastseen n))
+                       (not (node-online? n))))
           node-infos))
 
 (def date-formatter (f/formatter "d.M.yyyy" (t/default-time-zone)))
@@ -193,7 +192,7 @@
       (try
         (let [nodes (reduce (fn [x y]
                               (concat x (node-infos y))) [] (:nodes-urls config))
-              vanished-nodes (nodes-last-seen-in-interval
+              vanished-nodes (nodes-vanished-in-interval
                               nodes
                               (t/minus (l/local-now) (t/minutes (* 2 (:interval options))))
                               (t/minus (l/local-now) (t/minutes (:interval options))))
