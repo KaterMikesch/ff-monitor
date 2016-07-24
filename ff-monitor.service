@@ -1,0 +1,12 @@
+[Unit]
+Description=Monitoring Freifunk Nodes and informing owners on disconnect
+After=syslog.target network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/java -jar /usr/local/bin/ff-monitor.jar
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
