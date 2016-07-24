@@ -1,6 +1,6 @@
 # ff-monitor
 
-An email notifier service for the hopglass mesh network viewer
+FIXME: description
 
 ## Installation
 
@@ -8,9 +8,13 @@ Download from http://example.com/FIXME.
 
 ## Usage
 
-FIXME: explanation
+Build:
 
-    $ java -jar ff-monitor-0.1.0-standalone.jar [args]
+    $ lein uberjar
+
+Run: 
+
+    $ java -jar ff-monitor-x.x.x-standalone.jar [args]
 
 ## Options
 
