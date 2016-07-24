@@ -17,25 +17,6 @@
   (:import (java.lang Exception)
            (java.net InetAddress)))
 
-(defn contextual-eval [ctx expr]
-      (eval                                           
-        `(let [~@(mapcat (fn [[k v]] [k `'~v]) ctx)] 
-           ~expr)))
-(defmacro local-context []
-          (let [symbols (keys &env)]
-            (zipmap (map (fn [sym] `(quote ~sym)) symbols) symbols)))
-(defn readr [prompt exit-code]
-      (let [input (clojure.main/repl-read prompt exit-code)]
-        (if (= input ::tl)
-            exit-code
-            input)))
-;;make a break point
-(defmacro break []
-          `(clojure.main/repl
-             :prompt #(print "debug=> ")
-             :read readr
-             :eval (partial contextual-eval (local-context))))
-
 (def cli-options
      [;; First three strings describe a short-option, long-option with optional
      ;; example argument description, and a description. All three are optional
@@ -48,7 +29,7 @@
      ["-i" "--interval Minutes" "Number of minutes between checks"
      :default 20
      :parse-fn #(Integer/parseInt %)
-     :validate [#(< 12 % 3600) "Must be a number between 0 and 3600"]]
+     :validate [#(< 12 % 3600) "Must be a number between 12 and 3600"]]
      ["-d" "--debug" "Run only once"]
      ["-v" nil "Verbosity level; may be specified multiple times to increase value"
      ;; If no long-option is specified, an option :id must be given
@@ -91,7 +72,6 @@
 
 ;; config spec
 (spec/def ::url #(some? (try (as-url %) (catch Exception e))))
-
 (spec/def ::nodes-urls (spec/* ::url))
 (spec/def ::ssl boolean?)
 (spec/def ::host string?)
@@ -134,8 +114,8 @@
 
 (defn node-infos [url]
   (let [nodes (:nodes (json/read-str (slurp url)
-                                            :key-fn keyword
-                                            :value-fn value-coercer))]
+                                     :key-fn keyword
+                                     :value-fn value-coercer))]
     ;; (pp/pprint (first nodes))
     (let [node-infos (spec/conform ::nodes nodes)]
       ;; (pp/pprint node-infos)
@@ -156,10 +136,9 @@
       (second contact)
       (log/warn "Illegal value for 'contact' in node:" n))))
 
-(defn nodes-last-seen-in-interval [node-infos start-dt end-dt]
-  (filter (fn [x] (and (send-alert-requested? x)
-                       (t/within? start-dt end-dt (:lastseen x))
-                       (not (node-online? x))))
+(defn nodes-vanished-in-interval [node-infos start-dt end-dt]
+  (filter (fn [n] (and (t/within? start-dt end-dt (:lastseen n))
+                       (not (node-online? n))))
           node-infos))
 
 (def date-formatter (f/formatter "d.M.yyyy" (t/default-time-zone)))
@@ -193,10 +172,10 @@
       (try
         (let [nodes (reduce (fn [x y]
                               (concat x (node-infos y))) [] (:nodes-urls config))
-              vanished-nodes (nodes-last-seen-in-interval
+              vanished-nodes (nodes-vanished-in-interval
                               nodes
-                              (t/minus (l/local-now) (t/minutes (:interval options)))
-                              (l/local-now))
+                              (t/minus (l/local-now) (t/minutes (* 2 (:interval options))))
+                              (t/minus (l/local-now) (t/minutes (:interval options))))
               nodes-for-notification (filter (fn [n]
                                                (and (send-alert-requested? n)
                                                      (email-address n)))
