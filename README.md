@@ -1,6 +1,6 @@
 # ff-monitor
 
-FIXME: description
+An email notifier service for the hopglass mesh network viewer
 
 ## Installation
 
