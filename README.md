@@ -9,10 +9,16 @@ Get from github here: https://github.com/KaterMikesch/ff-monitor
 ## Usage
 
 Build:
+
     $ lein uberjar
 
 Run: 
+
     $ java -jar ff-monitor-x.x.x-standalone.jar [args]
+
+## Configuration
+
+See: https://github.com/KaterMikesch/ff-monitor/blob/master/resources/sample-config.edn
 
 ## License
 
