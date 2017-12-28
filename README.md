@@ -16,6 +16,12 @@ Run:
 
     $ java -jar ff-monitor-x.x.x-standalone.jar [args]
 
+### Arguments (args)
+
+`-c <config file path>`
+Configuration file path. Default path is
+`/usr/local/etc/ff-monitor.edn`
+
 ## Configuration
 
 See: https://github.com/KaterMikesch/ff-monitor/blob/master/resources/sample-config.edn

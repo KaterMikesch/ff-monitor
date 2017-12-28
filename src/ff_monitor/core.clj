@@ -11,7 +11,7 @@
             [postal.core :as postal]
             [postal.message :as message]
             [cprop.core :refer [load-config]]
-            [clojure.spec :as spec]
+            [clojure.spec.alpha :as spec]
             [clojure.tools.logging :as log]
             [clojure.pprint :as pp])
   (:import (java.lang Exception)
